@@ -1,10 +1,8 @@
 #pragma once
 #include "Message.hpp"
-#include <iostream>
 #include <pthread.h>
 #include <queue>
 #include <unistd.h>
-#include <utility>
 #include <string>
 
 class MsgQueue

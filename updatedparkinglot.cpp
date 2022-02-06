@@ -1,15 +1,9 @@
-#include <time.h> /* time */
+#include <time.h>
 #include <stdlib.h>
 #include "handlers.hpp"
 #define MAX_QUEUE_SIZE 5
 
 using namespace std;
-
-struct ThreadQueues
-{                        // Struct manages both entry & exit queues,
-    MsgQueue entryQueue; // so they can be passed to car easily,
-    MsgQueue exitQueue;  // as well as the entry and exit threads alike.
-};
 
 void *entryGuard(void *arg)
 {
@@ -49,26 +43,21 @@ string gen_random(int len) {
 
 void *carSimulation(void *arg)
 {
+    string carName = gen_random(3);
+
     ThreadQueues *queues = (ThreadQueues *)arg;
-    MsgQueue *entryThreadQueue = &queues->entryQueue;
-    MsgQueue *exitThreadQueue = &queues->exitQueue;
-    MsgQueue carQueue(MAX_QUEUE_SIZE, "Car q");
-    MsgQueue *carPTR = &carQueue;
+    MsgQueue carQueue(MAX_QUEUE_SIZE, carName);
 
-    string name = gen_random(3);
+    CarMessage *openReq = new CarMessage(ST_entry_request_open, &carQueue, carName);
 
-    // Entry section, car sends open request to entryGuard
-    // and handles incoming messsages.
-    CarMessage *openReq = new CarMessage(ST_entry_request_open, carPTR, name);
-
-    entryThreadQueue->send(openReq);
-    printf("Car %s: Requests Entry Open Door.\n", name.c_str());
+    queues->entryQueue->send(openReq);
+    printf("Car %s: Requests Entry Open Door.\n", carName.c_str());
 
     for (;;)
     {
-        CarMessage *entryMsg = (CarMessage*)carPTR->receive();
+        CarMessage *entryMsg = (CarMessage*)carQueue.receive();
 
-        carMsgHandler(entryMsg, entryThreadQueue, exitThreadQueue, carPTR);
+        carMsgHandler(entryMsg, queues, &carQueue);
     }
     return NULL;
 }
@@ -76,7 +65,7 @@ void *carSimulation(void *arg)
 int main(void)
 {
     srand(time(NULL));
-    int carCount = 0;
+    int carCount;
     pthread_t entryGuardThread;
     pthread_t exitGuardThread;
     pthread_t carSimulationThread[1024];
@@ -85,18 +74,18 @@ int main(void)
     MsgQueue exitMq(MAX_QUEUE_SIZE, "Exit q");
 
     ThreadQueues progQueues = {
-        .entryQueue = entryMq,
-        .exitQueue = exitMq
+        .entryQueue = &entryMq,
+        .exitQueue = &exitMq
     };
 
-    cout << "Create no. of cars: ";
-    cin >> carCount;
+    printf("Create no. of cars:\n");
+
+    scanf("%i", &carCount);
 
     carSimulationThread[carCount];
 
-    pthread_create(&entryGuardThread, nullptr, entryGuard, (void *)&progQueues.entryQueue);
-    pthread_create(&exitGuardThread, nullptr, exitGuard, (void *)&progQueues.exitQueue);
-    // pthread_create(&carSimulationThread, nullptr, carSimulation, NULL); Er den her nødvendig/gyldig når det er array?
+    pthread_create(&entryGuardThread, nullptr, entryGuard, (void *)progQueues.entryQueue);
+    pthread_create(&exitGuardThread, nullptr, exitGuard, (void *)progQueues.exitQueue);
 
     for (int i = 0; i < carCount; i++)
     {
