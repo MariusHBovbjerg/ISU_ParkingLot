@@ -5,35 +5,35 @@ MsgQueue::~MsgQueue() {}
 
 Message *MsgQueue::receive()
 {
-	pthread_mutex_lock(&mut);
+    pthread_mutex_lock(&mut);
 
-	while (mq.empty())
-	{
-		pthread_cond_wait(&condTX, &mut);
-	}
+    while (mq.empty())
+    {
+        pthread_cond_wait(&condTX, &mut);
+    }
 
-	Message *val = mq.front();
+    Message *val = mq.front();
 
-	mq.pop();
+    mq.pop();
 
-	pthread_cond_signal(&condRX);
+    pthread_cond_signal(&condRX);
 
-	pthread_mutex_unlock(&mut);
+    pthread_mutex_unlock(&mut);
 
-  	return val;
+    return val;
 }
 
 void MsgQueue::send(Message *msg)
 {
-	pthread_mutex_lock(&mut);
+    pthread_mutex_lock(&mut);
 
-	while (mq.size() >= maxSize)
-	{
-		pthread_cond_wait(&condRX, &mut);
-	}
+    while (mq.size() >= maxSize)
+    {
+        pthread_cond_wait(&condRX, &mut);
+    }
 
-	mq.push(msg);
+    mq.push(msg);
 
-	pthread_cond_signal(&condTX);
-	pthread_mutex_unlock(&mut);
+    pthread_cond_signal(&condTX);
+    pthread_mutex_unlock(&mut);
 }
