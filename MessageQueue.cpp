@@ -12,12 +12,9 @@ Message *MsgQueue::receive()
         pthread_cond_wait(&condTX, &mut);
     }
 
-    Message *val = mq.front();
-
-    mq.pop();
+    Message *val = take();
 
     pthread_cond_signal(&condRX);
-
     pthread_mutex_unlock(&mut);
 
     return val;
@@ -36,4 +33,10 @@ void MsgQueue::send(Message *msg)
 
     pthread_cond_signal(&condTX);
     pthread_mutex_unlock(&mut);
+}
+
+Message* MsgQueue::take() {
+    Message* val = mq.front();
+    mq.pop();
+    return val;
 }

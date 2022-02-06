@@ -9,6 +9,7 @@ class MsgQueue
 {
 public:
     MsgQueue(unsigned long maxSize, std::string queueName);
+    Message* take();
     void send(Message *msg);
     Message *receive();
     ~MsgQueue();
